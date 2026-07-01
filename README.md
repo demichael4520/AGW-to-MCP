@@ -215,3 +215,13 @@ Run the streaming validation script `test_agent_stream.py` to verify the routing
     python3 test_agent_stream.py
     ```
 4.  **Observe output**: Check that you receive the final streamed response containing the temperature and wind speed for Paris.
+5.  **Verify VPC Flow Logs**:
+    To verify that network packets are flowing from the Agent Gateway to the destination endpoint privately within the VPC, run this command:
+    ```bash
+    gcloud logging read 'resource.type="gce_subnetwork" \
+      AND resource.labels.subnetwork_name="network-attachment-east1" \
+      AND logName="projects/'"${PROJ_ID}"'/logs/compute.googleapis.com%2Fvpc_flows"' \
+      --project=${PROJ_ID} \
+      --limit=20 \
+      --format="value(timestamp, jsonPayload.connection, jsonPayload.bytes_sent)"
+    ```
