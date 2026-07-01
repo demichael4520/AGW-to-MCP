@@ -37,7 +37,7 @@ export GATEWAY_NAME="us-east1"
 export ORG_ID="1015654926499" 
 
 # Target Cloud Run MCP Weather Server variables
-export CLOUD_RUN_REGION="us-central1"
+export CLOUD_RUN_REGION="us-east1"
 export CLOUD_RUN_SERVICE_NAME="mcp-weather-server"
 
 # Staging bucket for Agent Runtime build deployment
