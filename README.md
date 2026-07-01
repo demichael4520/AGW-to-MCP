@@ -66,9 +66,31 @@ First, deploy the private Cloud Run Weather Server to obtain its URL. Authentica
     export CLOUD_RUN_URL="https://mcp-weather-server-xxxxxxxxx.us-central1.run.app"
     ```
 
+## 🛠️ Step 2: Create the PSC Google APIs Global Endpoint
+
+Reserve a global internal IP address (`240.0.0.10`) inside the `agent-vpc` network and create a Private Service Connect (PSC) forwarding rule targeting the Google APIs bundle:
+
+```bash
+# 1. Reserve the PSC IP address
+gcloud compute addresses create psc-google-apis-ip \
+  --global \
+  --purpose=PRIVATE_SERVICE_CONNECT \
+  --addresses=240.0.0.10 \
+  --network=agent-vpc \
+  --project=${PROJ_ID}
+
+# 2. Create the PSC forwarding rule
+gcloud compute forwarding-rules create pscgoogleapis \
+  --global \
+  --network=agent-vpc \
+  --address=psc-google-apis-ip \
+  --target-google-apis-bundle=all-apis \
+  --project=${PROJ_ID}
+```
+
 ---
 
-## 🛠️ Step 2: VPC Infrastructure & DNS Configuration
+## 🛠️ Step 3: VPC Infrastructure & DNS Configuration
 
 Ensure the VPC network and Agent Gateway DNS Peering are set up:
 
@@ -131,7 +153,7 @@ gcloud alpha network-services agent-gateways import us-east1 \
 
 ---
 
-## 🛠️ Step 3: Register MCP Service & Google APIs
+## 🛠️ Step 4: Register MCP Service & Google APIs
 
 Register the Cloud Run Weather Server URL and target Google APIs inside the regional `${REGION}` Agent Registry:
 
@@ -154,7 +176,7 @@ python3 endpoints/register_endpoints.py \
 
 ---
 
-## 🛠️ Step 4: Configure IAM Security & Impersonation
+## 🛠️ Step 5: Configure IAM Security & Impersonation
 
 Because the agent runs in `AGENT_IDENTITY` (SPIFFE-based) mode, it receives a federated Security Token Service (STS) token signed by `sts.googleapis.com`. Standard Cloud Run IAM requires standard Google-signed OIDC ID tokens.
 
@@ -192,7 +214,7 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
 
 ---
 
-## 🚀 Step 5: Deploy the Workload (Client Agent)
+## 🚀 Step 6: Deploy the Workload (Client Agent)
 
 1.  **Configure Target Cloud Run URL in Agent Code**:
     Open `agent/agent.py` and ensure the target audience and MCP connection URL are updated to match your dynamic `${CLOUD_RUN_URL}`:
@@ -221,7 +243,7 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
 
 ---
 
-## 🔍 Step 6: Validate Deployment
+## 🔍 Step 7: Validate Deployment
 
 Run the streaming validation script `test_agent_stream.py` to verify the routing path:
 
