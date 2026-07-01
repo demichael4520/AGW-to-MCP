@@ -1,0 +1,3 @@
+google-adk
+mcp
+google-cloud-aiplatform[adk,agent_engines]
