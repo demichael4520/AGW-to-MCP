@@ -54,9 +54,61 @@ export AGW_URI="projects/${PROJ_ID}/locations/${REGION}/agentGateways/${GATEWAY_
 Ensure you have the following GCP resources set up:
 1.  **VPC Network & Subnet**: A VPC (`agent-vpc`) with a subnet (`network-attachment-east1`) in `us-east1` having **Private Google Access** enabled (`privateIpGoogleAccess: true`).
 2.  **PSC Network Attachment**: Created inside `${REGION}` region targeting the subnet.
-3.  **Agent Gateway**: Created in `${REGION}` region in `AGENT_TO_ANYWHERE` mode, configured with `networkConfig` pointing to your PSC network attachment.
+3.  **Private Cloud Run MCP Server**: Deployed with IAM Authentication enabled.
 4.  **Agent Registry**: A regional registry in `${REGION}`.
-5.  **Private Cloud Run MCP Server**: Deployed with IAM Authentication enabled.
+
+### 🌐 Configure Private DNS Zone for Cloud Run Egress
+To validate Agent Runtime connection to the VPC, DNS peering must be configured. Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to the Private Service Connect (PSC) Google APIs IP (`172.16.10.10`):
+
+```bash
+# 1. Create the private DNS zone for run.app.
+gcloud dns managed-zones create cloud-run \
+  --description="Private DNS zone for Cloud Run" \
+  --dns-name="run.app." \
+  --visibility=private \
+  --networks=agent-vpc \
+  --project=${PROJ_ID}
+
+# 2. Map wildcard *.run.app. to your Google APIs PSC Endpoint IP
+gcloud dns record-sets create "*.run.app." \
+  --zone=cloud-run \
+  --type=A \
+  --ttl=300 \
+  --rrdatas=172.16.10.10 \
+  --project=${PROJ_ID}
+```
+
+### 🛰️ Configure and Deploy Agent Gateway (with DNS Peering)
+Create your Agent Gateway in `AGENT_TO_ANYWHERE` mode, configured to peer `run.app.` resolutions to the customer VPC.
+
+1. Generate the gateway configuration file `gateway_config.yaml` dynamically:
+```bash
+cat <<EOF > gateway_config.yaml
+name: us-east1
+protocols:
+  - MCP
+googleManaged:
+  governedAccessPath: AGENT_TO_ANYWHERE
+registries:
+  - "//agentregistry.googleapis.com/projects/\${PROJ_ID}/locations/us-east1"
+networkConfig:
+  egress:
+    networkAttachment: projects/\${PROJ_ID}/regions/us-east1/networkAttachments/agent-attachment-east1
+  dnsPeeringConfig:
+    domains:
+      - run.app.
+    targetProject: \${PROJ_ID}
+    targetNetwork: projects/\${PROJ_ID}/global/networks/agent-vpc
+EOF
+```
+
+2. Import the configuration to deploy/update your gateway:
+```bash
+gcloud alpha network-services agent-gateways import us-east1 \
+  --source=gateway_config.yaml \
+  --location=${REGION} \
+  --project=${PROJ_ID}
+```
 
 ---
 
