@@ -76,7 +76,7 @@ Ensure the VPC network and Agent Gateway DNS Peering are set up:
 3.  **Agent Registry**: A regional registry in `${REGION}`.
 
 ### 🌐 Configure Private DNS Zone for Cloud Run Egress
-Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to your Private Service Connect (PSC) Google APIs IP (`172.16.10.10`):
+Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to your Private Service Connect (PSC) Google APIs IP (`240.0.0.10`):
 
 ```bash
 # 1. Create the private DNS zone for run.app.
@@ -92,7 +92,7 @@ gcloud dns record-sets create "*.run.app." \
   --zone=cloud-run \
   --type=A \
   --ttl=300 \
-  --rrdatas=172.16.10.10 \
+  --rrdatas=240.0.0.10 \
   --project=${PROJ_ID}
 ```
 
