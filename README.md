@@ -18,9 +18,9 @@ This repository contains the codebase and deployment instructions for configurin
 
 ---
 
-## 🛠️ Step 0: Define Environment Variables
+## 🛠️ Step 0: Bootstrap Environment Variables
 
-To make copying and pasting commands easier, configure the following environment variables in your terminal:
+Configure the following environment variables in your terminal to bootstrap coordinates:
 
 ```bash
 # Get active GCP Project ID dynamically
@@ -39,7 +39,6 @@ export ORG_ID="1015654926499"
 # Target Cloud Run MCP Weather Server variables
 export CLOUD_RUN_REGION="us-central1"
 export CLOUD_RUN_SERVICE_NAME="mcp-weather-server"
-export CLOUD_RUN_URL="https://mcp-weather-server-439077346891.us-central1.run.app"
 
 # Staging bucket for Agent Runtime build deployment
 export STAGING_BUCKET="agent-staging-${PROJECT_NUMBER}"
@@ -49,16 +48,35 @@ export AGW_URI="projects/${PROJ_ID}/locations/${REGION}/agentGateways/${GATEWAY_
 
 ---
 
-## 🛠️ Step 1: GCP Infrastructure Prerequisites
+## 🛠️ Step 1: Deploy the Private Cloud Run MCP Server
 
-Ensure you have the following GCP resources set up:
+First, deploy the private Cloud Run Weather Server to obtain its URL. Authentication will be enforced on this service.
+
+1.  Navigate to the weather server folder (`cr_mcp_weather`) and deploy to Cloud Run:
+    ```bash
+    gcloud run deploy ${CLOUD_RUN_SERVICE_NAME} \
+      --source=. \
+      --region=${CLOUD_RUN_REGION} \
+      --no-allow-unauthenticated \
+      --project=${PROJ_ID}
+    ```
+2.  Extract the generated service URL from the command output and set it in your environment:
+    ```bash
+    export CLOUD_RUN_URL="https://mcp-weather-server-xxxxxxxxx.us-central1.run.app"
+    ```
+
+---
+
+## 🛠️ Step 2: VPC Infrastructure & DNS Configuration
+
+Ensure the VPC network and Agent Gateway DNS Peering are set up:
+
 1.  **VPC Network & Subnet**: A VPC (`agent-vpc`) with a subnet (`network-attachment-east1`) in `us-east1` having **Private Google Access** enabled (`privateIpGoogleAccess: true`).
 2.  **PSC Network Attachment**: Created inside `${REGION}` region targeting the subnet.
-3.  **Private Cloud Run MCP Server**: Deployed with IAM Authentication enabled.
-4.  **Agent Registry**: A regional registry in `${REGION}`.
+3.  **Agent Registry**: A regional registry in `${REGION}`.
 
 ### 🌐 Configure Private DNS Zone for Cloud Run Egress
-To validate Agent Runtime connection to the VPC, DNS peering must be configured. Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to the Private Service Connect (PSC) Google APIs IP (`172.16.10.10`):
+Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to your Private Service Connect (PSC) Google APIs IP (`172.16.10.10`):
 
 ```bash
 # 1. Create the private DNS zone for run.app.
@@ -79,7 +97,7 @@ gcloud dns record-sets create "*.run.app." \
 ```
 
 ### 🛰️ Configure and Deploy Agent Gateway (with DNS Peering)
-Create your Agent Gateway in `AGENT_TO_ANYWHERE` mode, configured to peer `run.app.` resolutions to the customer VPC.
+Configure the Agent Gateway to peer `run.app.` resolutions to your customer VPC.
 
 1. Generate the gateway configuration file `gateway_config.yaml` dynamically:
 ```bash
@@ -112,7 +130,7 @@ gcloud alpha network-services agent-gateways import us-east1 \
 
 ---
 
-## 🛠️ Step 2: Register MCP Service & Google APIs
+## 🛠️ Step 3: Register MCP Service & Google APIs
 
 Register the Cloud Run Weather Server URL and target Google APIs inside the regional `${REGION}` Agent Registry:
 
@@ -143,7 +161,7 @@ gcloud alpha agent-registry services create us-east1-aiplatform-mtls \
 
 ---
 
-## 🛠️ Step 3: Configure IAM Security & Impersonation
+## 🛠️ Step 4: Configure IAM Security & Impersonation
 
 Because the agent runs in `AGENT_IDENTITY` (SPIFFE-based) mode, it receives a federated Security Token Service (STS) token signed by `sts.googleapis.com`. Standard Cloud Run IAM requires standard Google-signed OIDC ID tokens.
 
@@ -181,27 +199,36 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
 
 ---
 
-## 🚀 Step 4: Deploy the Workload (Client Agent)
+## 🚀 Step 5: Deploy the Workload (Client Agent)
 
-Deploy the client agent using `deploy_agent.py`. The script configures the Reasoning Engine with the target regional Agent Gateway and registers the deployment:
+1.  **Configure Target Cloud Run URL in Agent Code**:
+    Open `agent/agent.py` and ensure the target audience and MCP connection URL are updated to match your dynamic `${CLOUD_RUN_URL}`:
+    ```python
+    # agent/agent.py
+    def get_auth_headers(context=None) -> dict[str, str]:
+        target_audience = "https://mcp-weather-server-xxxxxxxxx.us-central1.run.app"
+        # ...
+    ```
 
-```bash
-uv run python3 deploy_agent.py \
-  --project=${PROJ_ID} \
-  --region=${REGION} \
-  --src-dir=./agent \
-  --staging-bucket=${STAGING_BUCKET} \
-  --display-name="${RE_AGENT_NAME}" \
-  --description="MCP Weather Client Agent" \
-  --enable-telemetry \
-  --enable-agent-identity \
-  --agent-gateway-egress=${AGW_URI} \
-  --allow-token-sharing
-```
+2.  **Deploy the Client Agent**:
+    Run `deploy_agent.py` to compile, package, and upload the reasoning engine:
+    ```bash
+    uv run python3 deploy_agent.py \
+      --project=${PROJ_ID} \
+      --region=${REGION} \
+      --src-dir=./agent \
+      --staging-bucket=${STAGING_BUCKET} \
+      --display-name="${RE_AGENT_NAME}" \
+      --description="MCP Weather Client Agent" \
+      --enable-telemetry \
+      --enable-agent-identity \
+      --agent-gateway-egress=${AGW_URI} \
+      --allow-token-sharing
+    ```
 
 ---
 
-## 🔍 Step 5: Validate Deployment
+## 🔍 Step 6: Validate Deployment
 
 Run the streaming validation script `test_agent_stream.py` to verify the routing path:
 
