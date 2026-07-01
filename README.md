@@ -93,7 +93,6 @@ Ensure you have your base VPC network (`agent-vpc`) and subnets set up with Priv
       --connection-preference=ACCEPT_AUTOMATIC \
       --project=${PROJ_ID}
     ```
-4.  **Agent Registry**: A regional registry in `us-east1`.
 
 ---
 
