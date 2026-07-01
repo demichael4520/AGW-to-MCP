@@ -31,6 +31,7 @@ export PROJECT_NUMBER=$(gcloud projects describe ${PROJ_ID} --format="value(proj
 
 # Specify target region and Agent Gateway name
 export REGION="us-east1"
+export MREGION="us"
 export GATEWAY_NAME="us-east1"
 
 # Specify organization ID (if project is part of a Google Cloud Org)
@@ -144,19 +145,11 @@ gcloud alpha agent-registry services create mcp-weather-server \
   --interfaces=url=${CLOUD_RUN_URL}/mcp,protocolBinding=JSONRPC
 
 # 2. Register required Google APIs (Bootstrap)
-gcloud alpha agent-registry services create us-east1-cloudresourcemanager-mtls \
-  --project=${PROJ_ID} \
-  --location=${REGION} \
-  --display-name="cloudresourcemanager.mtls.googleapis.com" \
-  --endpoint-spec-type=no-spec \
-  --interfaces=url=https://cloudresourcemanager.mtls.googleapis.com,protocolBinding=JSONRPC
-
-gcloud alpha agent-registry services create us-east1-aiplatform-mtls \
-  --project=${PROJ_ID} \
-  --location=${REGION} \
-  --display-name="us-east1-aiplatform.mtls.googleapis.com" \
-  --endpoint-spec-type=no-spec \
-  --interfaces=url=https://us-east1-aiplatform.mtls.googleapis.com,protocolBinding=JSONRPC
+# Run the helper script to register the standard set of Google API endpoints:
+python3 endpoints/register_endpoints.py \
+  --multi-region=${MREGION} \
+  --region=${REGION} \
+  --mtls-endpoints=include
 ```
 
 ---
