@@ -66,7 +66,38 @@ First, deploy the private Cloud Run Weather Server to obtain its URL. Authentica
     export CLOUD_RUN_URL="https://mcp-weather-server-xxxxxxxxx.us-central1.run.app"
     ```
 
-## 🛠️ Step 2: Create the PSC Google APIs Global Endpoint
+## 🛠️ Step 2: VPC Network & Subnet Infrastructure
+
+Ensure you have your base VPC network (`agent-vpc`) and subnets set up with Private Google Access enabled:
+
+1.  **VPC Network**: A custom VPC network named `agent-vpc`:
+    ```bash
+    gcloud compute networks create agent-vpc \
+      --subnet-mode=custom \
+      --project=${PROJ_ID}
+    ```
+2.  **Subnet**: A subnet named `network-attachment-east1` in region `us-east1` with Private Google Access enabled (`privateIpGoogleAccess: true`):
+    ```bash
+    gcloud compute networks subnets create network-attachment-east1 \
+      --network=agent-vpc \
+      --range=192.168.20.0/28 \
+      --region=us-east1 \
+      --enable-private-ip-google-access \
+      --project=${PROJ_ID}
+    ```
+3.  **PSC Network Attachment**: Created inside `us-east1` region targeting the subnet:
+    ```bash
+    gcloud compute network-attachments create agent-attachment-east1 \
+      --region=us-east1 \
+      --subnets=network-attachment-east1 \
+      --connection-preference=ACCEPT_AUTOMATIC \
+      --project=${PROJ_ID}
+    ```
+4.  **Agent Registry**: A regional registry in `us-east1`.
+
+---
+
+## 🛠️ Step 3: Create the PSC Google APIs Global Endpoint
 
 Reserve a global internal IP address (`240.0.0.10`) inside the `agent-vpc` network and create a Private Service Connect (PSC) forwarding rule targeting the Google APIs bundle:
 
@@ -90,15 +121,8 @@ gcloud compute forwarding-rules create pscgoogleapis \
 
 ---
 
-## 🛠️ Step 3: VPC Infrastructure & DNS Configuration
+## 🛠️ Step 4: Configure DNS Zones & Records
 
-Ensure the VPC network and Agent Gateway DNS Peering are set up:
-
-1.  **VPC Network & Subnet**: A VPC (`agent-vpc`) with a subnet (`network-attachment-east1`) in `us-east1` having **Private Google Access** enabled (`privateIpGoogleAccess: true`).
-2.  **PSC Network Attachment**: Created inside `${REGION}` region targeting the subnet.
-3.  **Agent Registry**: A regional registry in `${REGION}`.
-
-### 🌐 Configure Private DNS Zone for Cloud Run Egress
 Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to your Private Service Connect (PSC) Google APIs IP (`240.0.0.10`):
 
 ```bash
@@ -119,7 +143,10 @@ gcloud dns record-sets create "*.run.app." \
   --project=${PROJ_ID}
 ```
 
-### 🛰️ Configure and Deploy Agent Gateway (with DNS Peering)
+---
+
+## 🛠️ Step 5: Configure and Deploy Agent Gateway (with DNS Peering)
+
 Configure the Agent Gateway to peer `run.app.` resolutions to your customer VPC.
 
 1. Generate the gateway configuration file `gateway_config.yaml` dynamically:
@@ -153,7 +180,7 @@ gcloud alpha network-services agent-gateways import us-east1 \
 
 ---
 
-## 🛠️ Step 4: Register MCP Service & Google APIs
+## 🛠️ Step 6: Register MCP Service & Google APIs
 
 Register the Cloud Run Weather Server URL and target Google APIs inside the regional `${REGION}` Agent Registry:
 
@@ -176,7 +203,7 @@ python3 endpoints/register_endpoints.py \
 
 ---
 
-## 🛠️ Step 5: Configure IAM Security & Impersonation
+## 🛠️ Step 7: Configure IAM Security & Impersonation
 
 Because the agent runs in `AGENT_IDENTITY` (SPIFFE-based) mode, it receives a federated Security Token Service (STS) token signed by `sts.googleapis.com`. Standard Cloud Run IAM requires standard Google-signed OIDC ID tokens.
 
@@ -214,7 +241,7 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
 
 ---
 
-## 🚀 Step 6: Deploy the Workload (Client Agent)
+## 🚀 Step 8: Deploy the Workload (Client Agent)
 
 1.  **Configure Target Cloud Run URL in Agent Code**:
     Open `agent/agent.py` and ensure the target audience and MCP connection URL are updated to match your dynamic `${CLOUD_RUN_URL}`:
@@ -243,7 +270,7 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
 
 ---
 
-## 🔍 Step 7: Validate Deployment
+## 🔍 Step 9: Validate Deployment
 
 Run the streaming validation script `test_agent_stream.py` to verify the routing path:
 
