@@ -46,6 +46,13 @@ This repository contains the codebase and deployment instructions for configurin
     export STAGING_BUCKET="agent-staging-${PROJECT_NUMBER}"
     export RE_AGENT_NAME="mcp-weather-client"
     export AGW_URI="projects/${PROJ_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
+
+    # Verify environment variables
+    echo ${PROJ_ID}
+    echo ${PROJECT_NUMBER}
+    echo ${REGION}
+    echo ${MREGION}
+    echo ${AGW_NAME}
     ```
 
 2.  **Enable Required Google Cloud APIs**:
