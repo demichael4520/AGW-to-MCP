@@ -253,7 +253,13 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
         # ...
     ```
 
-2.  **Deploy the Client Agent**:
+2.  **Create Cloud Storage Staging Bucket**:
+    Create the storage bucket used for staging agent build deployment artifacts:
+    ```bash
+    gcloud storage buckets create gs://${STAGING_BUCKET} --location=${REGION} --project=${PROJ_ID}
+    ```
+
+3.  **Deploy the Client Agent**:
     Run `deploy_agent.py` to compile, package, and upload the reasoning engine:
     ```bash
     uv run python3 deploy_agent.py \
