@@ -178,7 +178,7 @@ Configure the Agent Gateway to peer `run.app.` resolutions to your customer VPC.
 
 1. Generate the gateway configuration file `gateway_config.yaml` dynamically:
 ```bash
-cat <<EOF > gateway_config.yaml
+cat <<EOF > ${AGW_NAME}-network.yaml
 name: us-east1
 protocols:
   - MCP
@@ -199,8 +199,8 @@ EOF
 
 2. Import the configuration to deploy/update your gateway:
 ```bash
-gcloud alpha network-services agent-gateways import us-east1 \
-  --source=gateway_config.yaml \
+gcloud alpha network-services agent-gateways import ${AGW_NAME} \
+  --source=${AGW_NAME}-network.yaml \
   --location=${REGION} \
   --project=${PROJ_ID}
 ```
