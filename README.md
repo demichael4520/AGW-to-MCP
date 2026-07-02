@@ -18,34 +18,60 @@ This repository contains the codebase and deployment instructions for configurin
 
 ---
 
-## 🛠️ Step 0: Bootstrap Environment Variables
+## 🛠️ Step 0: Bootstrap Environment Variables & API Enablement
 
-Configure the following environment variables in your terminal to bootstrap coordinates:
+1.  **Configure Environment Variables**:
+    Set the following environment variables in your terminal to bootstrap deployment coordinates:
+    ```bash
+    # Get active GCP Project ID dynamically
+    export PROJ_ID=$(gcloud config list --format="value(core.project)")
 
-```bash
-# Get active GCP Project ID dynamically
-export PROJ_ID=$(gcloud config list --format="value(core.project)")
+    # Get GCP Project Number dynamically
+    export PROJECT_NUMBER=$(gcloud projects describe ${PROJ_ID} --format="value(projectNumber)")
 
-# Get GCP Project Number dynamically
-export PROJECT_NUMBER=$(gcloud projects describe ${PROJ_ID} --format="value(projectNumber)")
+    # Specify target region and Agent Gateway name
+    export REGION="us-east1"
+    export MREGION="us"
+    export GATEWAY_NAME="us-east1"
 
-# Specify target region and Agent Gateway name
-export REGION="us-east1"
-export MREGION="us"
-export GATEWAY_NAME="us-east1"
+    # Specify organization ID (if project is part of a Google Cloud Org)
+    export ORG_ID="1015654926499" 
 
-# Specify organization ID (if project is part of a Google Cloud Org)
-export ORG_ID="1015654926499" 
+    # Target Cloud Run MCP Weather Server variables
+    export CLOUD_RUN_REGION="us-east1"
+    export CLOUD_RUN_SERVICE_NAME="mcp-weather-server"
 
-# Target Cloud Run MCP Weather Server variables
-export CLOUD_RUN_REGION="us-east1"
-export CLOUD_RUN_SERVICE_NAME="mcp-weather-server"
+    # Staging bucket for Agent Runtime build deployment
+    export STAGING_BUCKET="agent-staging-${PROJECT_NUMBER}"
+    export RE_AGENT_NAME="mcp-weather-client"
+    export AGW_URI="projects/${PROJ_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
+    ```
 
-# Staging bucket for Agent Runtime build deployment
-export STAGING_BUCKET="agent-staging-${PROJECT_NUMBER}"
-export RE_AGENT_NAME="mcp-weather-client"
-export AGW_URI="projects/${PROJ_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
-```
+2.  **Enable Required Google Cloud APIs**:
+    Enable all required service APIs for networking, Agent Gateway, Agent Registry, Cloud Run, and Agent Runtime:
+    ```bash
+    gcloud services enable \
+      compute.googleapis.com \
+      dns.googleapis.com \
+      run.googleapis.com \
+      cloudbuild.googleapis.com \
+      artifactregistry.googleapis.com \
+      agentregistry.googleapis.com \
+      aiplatform.googleapis.com \
+      iam.googleapis.com \
+      iap.googleapis.com \
+      networkservices.googleapis.com \
+      serviceextensions.googleapis.com \
+      networksecurity.googleapis.com \
+      storage.googleapis.com \
+      --project=${PROJ_ID}
+    ```
+
+3.  **Create Cloud Storage Staging Bucket**:
+    Create the storage bucket used for staging agent deployment artifacts:
+    ```bash
+    gcloud storage buckets create gs://${STAGING_BUCKET} --location=${REGION} --project=${PROJ_ID}
+    ```
 
 ---
 
@@ -251,15 +277,7 @@ We handle this by configuring **Service Account Impersonation** (exchanging the 
     def get_auth_headers(context=None) -> dict[str, str]:
         target_audience = "https://mcp-weather-server-xxxxxxxxx.us-central1.run.app"
         # ...
-    ```
-
-2.  **Create Cloud Storage Staging Bucket**:
-    Create the storage bucket used for staging agent build deployment artifacts:
-    ```bash
-    gcloud storage buckets create gs://${STAGING_BUCKET} --location=${REGION} --project=${PROJ_ID}
-    ```
-
-3.  **Deploy the Client Agent**:
+2.  **Deploy the Client Agent**:
     Run `deploy_agent.py` to compile, package, and upload the reasoning engine:
     ```bash
     uv run python3 deploy_agent.py \
