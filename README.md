@@ -32,6 +32,7 @@ This repository contains the codebase and deployment instructions for configurin
     # Specify target region and Agent Gateway name
     export REGION="us-east1"
     export MREGION="us"
+    export AGW_NAME="us-east1"
     export GATEWAY_NAME="us-east1"
 
     # Specify organization ID (if project is part of a Google Cloud Org)
