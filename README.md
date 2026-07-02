@@ -122,6 +122,8 @@ gcloud compute forwarding-rules create pscgoogleapis \
 
 ## 🛠️ Step 4: Configure DNS Zones & Records
 
+**DNS Peering:** DNS Peering is configured between `agent-vpc` and the Agent Gateway to route traffic for the `run.app` domain, which is deployed within the VPC as a private zone. This peering allows the Agent Gateway to resolve the MCP server hostnames to the PSC Google APIs endpoint IP address (`240.0.0.10`). Thereafter, the Agent Gateway can successfully egress traffic to the VPC through the Private Service Connect (PSC) interface.
+
 Create a private DNS zone inside the `agent-vpc` network mapping `run.app.` to your Private Service Connect (PSC) Google APIs IP (`240.0.0.10`):
 
 ```bash
