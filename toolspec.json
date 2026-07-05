@@ -1,40 +1,21 @@
 {
   "tools": [
     {
-      "name": "get_alerts",
-      "description": "Get weather alerts for a state.",
+      "name": "get_weather",
+      "description": "Fetch weather for a given location.",
       "inputSchema": {
-        "type": "object",
         "properties": {
-          "state": {
+          "location": {
+            "title": "Location",
             "type": "string",
-            "description": "Two-letter state code (e.g. CA, NY)"
+            "description": "The name of the city/location (e.g., Paris, New York)."
           }
         },
         "required": [
-          "state"
-        ]
-      }
-    },
-    {
-      "name": "get_forecast",
-      "description": "Get weather forecast for a location.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "latitude": {
-            "type": "number",
-            "description": "Latitude of the location"
-          },
-          "longitude": {
-            "type": "number",
-            "description": "Longitude of the location"
-          }
-        },
-        "required": [
-          "latitude",
-          "longitude"
-        ]
+          "location"
+        ],
+        "title": "get_weatherArguments",
+        "type": "object"
       }
     }
   ]
