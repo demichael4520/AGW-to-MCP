@@ -225,7 +225,8 @@ gcloud alpha agent-registry services create mcp-weather-server \
   --project=${PROJ_ID} \
   --location=${REGION} \
   --display-name="Weather MCP Server" \
-  --endpoint-spec-type=no-spec \
+  --mcp-server-spec-type=tool-spec \
+  --mcp-server-spec-content=toolspec.json \
   --interfaces=url=${CLOUD_RUN_URL}/mcp,protocolBinding=JSONRPC
 
 # 2. Register required Google APIs (Bootstrap)
